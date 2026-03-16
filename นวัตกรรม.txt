@@ -1,0 +1,999 @@
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { 
+  LineChart as RechartLine, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area,
+  PieChart, Pie, Cell 
+} from 'recharts';
+import { 
+  Upload, Activity, Zap, Download, Clock, Cloud, CloudUpload, Eye,
+  BarChart3, LayoutDashboard, Database, AlertCircle, CheckCircle2, Calendar, Lock, ShieldCheck, X, KeyRound,
+  Cpu, ZapOff, ArrowUpRight, ChevronDown, Zap as ZapIcon, TrendingDown, TrendingUp, LineChart as AnalyticsIcon,
+  FilterX, ArrowRight, AlertTriangle, Bell, Settings2, Info, ClipboardCheck, Lightbulb, ShieldAlert, Sun, Moon, TrendingUp as TrendUp
+} from 'lucide-react';
+
+// Firebase Imports
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
+
+// --- Firebase Configuration ---
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+const ADMIN_PASSWORD = "1234"; 
+
+const THAI_MONTHS = [
+  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+];
+
+// Helper Functions Outside Component for stability
+const getMonthLabel = (monthKey) => {
+  if (!monthKey || typeof monthKey !== 'string') return '';
+  const parts = monthKey.split('-');
+  if (parts.length < 2) return monthKey;
+  const year = parts[0];
+  const monthIdx = parseInt(parts[1]) - 1;
+  const monthName = THAI_MONTHS[monthIdx] || 'ไม่ระบุ';
+  return `${monthName} ${year}`;
+};
+
+const renderValue = (val) => {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return String(val);
+  return JSON.stringify(val);
+};
+
+// --- Custom Banner Components ---
+const MainBanner = ({ isPdf = false }) => (
+  <div className={`w-full relative overflow-hidden rounded-[2.5rem] shadow-2xl ${isPdf ? 'py-10 mb-8 bg-[#0d0914]' : 'py-16 md:py-24 mb-10 bg-[#06020e]'} flex flex-col items-center justify-center break-inside-avoid border border-white/5`} data-html2canvas-ignore={!isPdf ? "true" : "false"}>
+    
+    {/* Cinematic Energy Nebula (Background Orbs Only) */}
+    {!isPdf && (
+       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          {/* Dynamic Energy Orbs */}
+          <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[150%] bg-[#4A148C]/30 rounded-full blur-[100px] mix-blend-screen animate-float-slow"></div>
+          <div className="absolute bottom-[-30%] right-[-10%] w-[70%] h-[120%] bg-[#1A237E]/40 rounded-full blur-[120px] mix-blend-screen animate-float-fast" style={{ animationDelay: '-2s' }}></div>
+          <div className="absolute top-[20%] left-[30%] w-[40%] h-[60%] bg-[#00E5FF]/10 rounded-full blur-[90px] mix-blend-screen animate-float-slow" style={{ animationDelay: '-5s' }}></div>
+       </div>
+    )}
+
+    {/* Central Target Nexus & Premium Logo Layer */}
+    <div className="relative z-10 flex flex-col items-center justify-center mb-8 mt-4">
+        
+        {/* The Core Nexus (Target) behind Logo */}
+        {!isPdf && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[450px] md:h-[450px] pointer-events-none z-0">
+                
+                {/* 3D Rotating Rings (Bigger than Logo) */}
+                <div className="absolute inset-0 animate-spin-slow">
+                    <div className="w-full h-full rounded-full border-t-[8px] border-r-[4px] border-transparent border-t-[#00E5FF]/60 border-r-[#00E5FF]/20" style={{ transform: 'rotateX(60deg)' }}></div>
+                </div>
+                <div className="absolute inset-8 animate-spin-reverse-fast">
+                    <div className="w-full h-full rounded-full border-b-[8px] border-l-[4px] border-transparent border-b-[#FDD835]/50 border-l-[#FDD835]/20" style={{ transform: 'rotateX(45deg) rotateY(30deg)' }}></div>
+                </div>
+                <div className="absolute inset-16 animate-spin-slow" style={{ animationDuration: '12s' }}>
+                    <div className="w-full h-full rounded-full border-[4px] border-dashed border-[#4A148C]/60" style={{ transform: 'rotateX(75deg) rotateY(-20deg)' }}></div>
+                </div>
+                
+                {/* Energy Shockwaves (แผ่คลื่นพลังงาน) */}
+                <div className="absolute inset-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-[#00E5FF] animate-shockwave"></div>
+                <div className="absolute inset-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-[2px] border-[#FDD835] animate-shockwave" style={{ animationDelay: '1.5s' }}></div>
+
+                {/* Sharp Pointed Comets streaming into the center from ALL directions */}
+                <div className="absolute top-1/2 left-1/2 w-0 h-0" style={{ transform: 'rotate(25deg)' }}>
+                   <div className="comet-tail" style={{ width: '180px', animation: 'radialFly 3s infinite ease-in 0s' }}></div>
+                </div>
+                <div className="absolute top-1/2 left-1/2 w-0 h-0" style={{ transform: 'rotate(70deg)' }}>
+                   <div className="comet-tail" style={{ width: '220px', animation: 'radialFly 3.5s infinite ease-in 1.2s', filter: 'hue-rotate(30deg)' }}></div>
+                </div>
+                <div className="absolute top-1/2 left-1/2 w-0 h-0" style={{ transform: 'rotate(135deg)' }}>
+                   <div className="comet-tail" style={{ width: '250px', animation: 'radialFly 2.8s infinite ease-in 2.5s', filter: 'hue-rotate(-20deg)' }}></div>
+                </div>
+                <div className="absolute top-1/2 left-1/2 w-0 h-0" style={{ transform: 'rotate(190deg)' }}>
+                   <div className="comet-tail" style={{ width: '150px', animation: 'radialFly 3.2s infinite ease-in 0.8s', filter: 'hue-rotate(45deg)' }}></div>
+                </div>
+                <div className="absolute top-1/2 left-1/2 w-0 h-0" style={{ transform: 'rotate(240deg)' }}>
+                   <div className="comet-tail" style={{ width: '200px', animation: 'radialFly 4s infinite ease-in 1.8s' }}></div>
+                </div>
+                <div className="absolute top-1/2 left-1/2 w-0 h-0" style={{ transform: 'rotate(295deg)' }}>
+                   <div className="comet-tail" style={{ width: '230px', animation: 'radialFly 3.6s infinite ease-in 2.9s', filter: 'hue-rotate(60deg)' }}></div>
+                </div>
+                <div className="absolute top-1/2 left-1/2 w-0 h-0" style={{ transform: 'rotate(330deg)' }}>
+                   <div className="comet-tail" style={{ width: '170px', animation: 'radialFly 2.5s infinite ease-in 0.4s', filter: 'hue-rotate(-40deg)' }}></div>
+                </div>
+                <div className="absolute top-1/2 left-1/2 w-0 h-0" style={{ transform: 'rotate(100deg)' }}>
+                   <div className="comet-tail" style={{ width: '190px', animation: 'radialFly 4.2s infinite ease-in 2.1s' }}></div>
+                </div>
+            </div>
+        )}
+
+        {/* The Glassmorphism Logo Itself */}
+        <div className="relative z-10 w-32 h-32 md:w-40 md:h-40 bg-[#0f0722]/80 backdrop-blur-xl rounded-full flex flex-col items-center justify-center border border-white/20 shadow-[0_0_50px_rgba(74,20,140,0.8)] group transition-transform hover:scale-105">
+          {/* Animated Tech Rings around Logo */}
+          {!isPdf && <div className="absolute inset-[-4px] rounded-full border-[3px] border-transparent border-t-[#FDD835] border-b-[#00E5FF] animate-spin-slow opacity-80"></div>}
+          {!isPdf && <div className="absolute inset-[-8px] rounded-full border border-white/10 animate-pulse-glow"></div>}
+          
+          <div className="flex flex-col items-center justify-center mt-1 z-10">
+            <span className="text-xl md:text-2xl font-black text-[#FDD835] tracking-[0.2em] number-font mb-0 drop-shadow-[0_0_8px_rgba(253,216,53,0.8)]">PEA</span>
+            <span className="text-5xl md:text-7xl font-black text-white tracking-tighter number-font leading-none drop-shadow-[0_0_15px_rgba(255,255,255,0.6)]">RCS</span>
+          </div>
+        </div>
+    </div>
+    
+    {/* Cinematic Title */}
+    <h1 className="relative z-10 text-5xl md:text-7xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-300 tracking-tight text-center px-4" style={{ filter: 'drop-shadow(0px 10px 20px rgba(0,0,0,0.5))' }}>
+      <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FDD835] to-[#FF9800] drop-shadow-[0_0_20px_rgba(253,216,53,0.4)]">นวัตกรรม</span>ฤาษีราชสาส์น
+    </h1>
+    <p className="relative z-10 mt-5 text-xs md:text-sm font-bold text-[#00E5FF] tracking-[0.4em] uppercase text-center drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]">Smart Power Quality Control</p>
+  </div>
+);
+
+const LoginBanner = () => (
+  <div className="w-full relative overflow-hidden bg-[#06020e] rounded-[1.5rem] py-10 mb-8 flex flex-col items-center shadow-inner border border-white/10">
+    {/* Cinematic Energy Nebula (Background Orbs) */}
+    <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+      <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[150%] bg-[#4A148C]/40 rounded-full blur-[60px] mix-blend-screen animate-float-slow"></div>
+      <div className="absolute bottom-[-30%] right-[-10%] w-[80%] h-[120%] bg-[#1A237E]/50 rounded-full blur-[70px] mix-blend-screen animate-float-fast" style={{ animationDelay: '-2s' }}></div>
+      <div className="absolute top-[20%] left-[30%] w-[50%] h-[60%] bg-[#00E5FF]/20 rounded-full blur-[50px] mix-blend-screen animate-float-slow" style={{ animationDelay: '-5s' }}></div>
+    </div>
+
+    {/* Central Target Nexus & Premium Logo Layer (Scaled for Modal) */}
+    <div className="relative z-10 flex flex-col items-center justify-center mb-6 mt-2">
+        {/* The Core Nexus (Target) behind Logo */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[220px] h-[220px] pointer-events-none z-0">
+            {/* 3D Rotating Rings */}
+            <div className="absolute inset-0 animate-spin-slow">
+                <div className="w-full h-full rounded-full border-t-[5px] border-r-[2px] border-transparent border-t-[#00E5FF]/60 border-r-[#00E5FF]/20" style={{ transform: 'rotateX(60deg)' }}></div>
+            </div>
+            <div className="absolute inset-6 animate-spin-reverse-fast">
+                <div className="w-full h-full rounded-full border-b-[5px] border-l-[2px] border-transparent border-b-[#FDD835]/50 border-l-[#FDD835]/20" style={{ transform: 'rotateX(45deg) rotateY(30deg)' }}></div>
+            </div>
+            <div className="absolute inset-12 animate-spin-slow" style={{ animationDuration: '12s' }}>
+                <div className="w-full h-full rounded-full border-[2px] border-dashed border-[#4A148C]/60" style={{ transform: 'rotateX(75deg) rotateY(-20deg)' }}></div>
+            </div>
+            
+            {/* Energy Shockwaves */}
+            <div className="absolute inset-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-[2px] border-[#00E5FF] animate-shockwave"></div>
+            <div className="absolute inset-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-[1px] border-[#FDD835] animate-shockwave" style={{ animationDelay: '1.5s' }}></div>
+
+            {/* Sharp Pointed Comets streaming into the center */}
+            <div className="absolute top-1/2 left-1/2 w-0 h-0" style={{ transform: 'rotate(25deg)' }}>
+               <div className="comet-tail" style={{ width: '120px', animation: 'radialFly 3s infinite ease-in 0s' }}></div>
+            </div>
+            <div className="absolute top-1/2 left-1/2 w-0 h-0" style={{ transform: 'rotate(135deg)' }}>
+               <div className="comet-tail" style={{ width: '150px', animation: 'radialFly 2.8s infinite ease-in 1.5s', filter: 'hue-rotate(-20deg)' }}></div>
+            </div>
+            <div className="absolute top-1/2 left-1/2 w-0 h-0" style={{ transform: 'rotate(240deg)' }}>
+               <div className="comet-tail" style={{ width: '130px', animation: 'radialFly 3.5s infinite ease-in 0.8s' }}></div>
+            </div>
+            <div className="absolute top-1/2 left-1/2 w-0 h-0" style={{ transform: 'rotate(330deg)' }}>
+               <div className="comet-tail" style={{ width: '110px', animation: 'radialFly 2.5s infinite ease-in 0.4s', filter: 'hue-rotate(-40deg)' }}></div>
+            </div>
+        </div>
+
+        {/* The Glassmorphism Logo Itself */}
+        <div className="relative z-10 w-24 h-24 bg-[#0f0722]/80 backdrop-blur-xl rounded-full flex flex-col items-center justify-center border border-white/20 shadow-[0_0_30px_rgba(74,20,140,0.8)]">
+          <div className="absolute inset-[-3px] rounded-full border-[2px] border-transparent border-t-[#FDD835] border-b-[#00E5FF] animate-spin-slow opacity-80"></div>
+          <div className="absolute inset-[-6px] rounded-full border border-white/10 animate-pulse-glow"></div>
+          
+          <div className="flex flex-col items-center justify-center mt-0.5 z-10">
+            <span className="text-sm font-black text-[#FDD835] tracking-[0.2em] number-font mb-0 drop-shadow-[0_0_5px_rgba(253,216,53,0.8)]">PEA</span>
+            <span className="text-3xl font-black text-white tracking-tighter number-font leading-none drop-shadow-[0_0_10px_rgba(255,255,255,0.6)]">RCS</span>
+          </div>
+        </div>
+    </div>
+    
+    <h2 className="relative z-10 text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#FDD835] to-[#FF9800] text-center drop-shadow-[0_0_10px_rgba(253,216,53,0.3)] tracking-tight">นวัตกรรมฤาษีราชสาส์น</h2>
+  </div>
+);
+
+const App = () => {
+  const [user, setUser] = useState(null);
+  const [data, setData] = useState([]);
+  const [fileName, setFileName] = useState('');
+  
+  // Alert Settings
+  const [alertThreshold, setAlertThreshold] = useState(205); 
+  
+  // Filter States
+  const [fromMonth, setFromMonth] = useState('');
+  const [fromDay, setFromDay] = useState('');
+  const [toMonth, setToMonth] = useState('');
+  const [toDay, setToDay] = useState('');
+  const [startTime, setStartTime] = useState('00:00');
+  const [endTime, setEndTime] = useState('23:59');
+  
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSynced, setLastSynced] = useState(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [passInput, setPassInput] = useState('');
+  const [loginError, setLoginError] = useState(false);
+  
+  const [focusedRecord, setFocusedRecord] = useState(null);
+  const tableRef = useRef(null);
+  const reportRef = useRef(null); 
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isPdfMode, setIsPdfMode] = useState(false); 
+
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) { console.error("Auth Error:", err); }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'power_history', 'latest_state');
+    const unsubscribe = onSnapshot(docRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const cloudData = snapshot.data();
+        if (!isSyncing) {
+          setData(Array.isArray(cloudData.logs) ? cloudData.logs : []);
+          setFileName(String(cloudData.fileName || 'Cloud Data'));
+          if (cloudData.timestamp) {
+            const date = cloudData.timestamp.toDate ? cloudData.timestamp.toDate() : new Date(cloudData.timestamp);
+            setLastSynced(date);
+          }
+        }
+      }
+    }, (error) => console.error("Snapshot error:", error));
+    return () => unsubscribe();
+  }, [user, isSyncing]);
+
+  const uniqueMonths = useMemo(() => {
+    if (!data.length) return [];
+    const months = data.map(item => String(item?.Timestamp || '').split(' ')[0].substring(0, 7));
+    return [...new Set(months.filter(m => m.length === 7))].sort();
+  }, [data]);
+
+  const getDaysInMonth = (monthStr) => {
+    if (!data.length || !monthStr) return [];
+    const days = data
+      .filter(item => String(item?.Timestamp || '').startsWith(monthStr))
+      .map(item => String(item?.Timestamp || '').split(' ')[0].split('-')[2]);
+    return [...new Set(days.filter(d => d))].sort();
+  };
+
+  const tableHeaders = useMemo(() => {
+    if (data.length === 0) return [];
+    const allKeys = Object.keys(data[0]);
+    const priority = ['Timestamp', 'Voltage LL1', 'Voltage LL2', 'Voltage LL3', 'Voltage LN1', 'Voltage LN2', 'Voltage LN3', 'Current 1', 'Current 2', 'Current 3', 'Power1', 'Power2', 'Power3', 'Total Power'];
+    const others = allKeys.filter(k => !priority.includes(k));
+    return [...priority.filter(k => allKeys.includes(k)), ...others];
+  }, [data]);
+
+  useEffect(() => {
+    if (uniqueMonths.length > 0 && !fromMonth) {
+      const startMonth = uniqueMonths[0];
+      const endMonth = uniqueMonths[uniqueMonths.length - 1];
+      setFromMonth(startMonth);
+      setToMonth(endMonth);
+      
+      const startDays = getDaysInMonth(startMonth);
+      const endDays = getDaysInMonth(endMonth);
+      if (startDays.length > 0) setFromDay(startDays[0]);
+      if (endDays.length > 0) setToDay(endDays[endDays.length - 1]);
+    }
+  }, [uniqueMonths, fromMonth]);
+
+  const filteredData = useMemo(() => {
+    let result = data;
+    const startStr = `${fromMonth}-${fromDay}`;
+    const endStr = `${toMonth}-${toDay}`;
+
+    if (fromMonth && fromDay && toMonth && toDay) {
+      result = result.filter(item => {
+        const datePart = String(item?.Timestamp || '').split(' ')[0];
+        return datePart >= startStr && datePart <= endStr;
+      });
+    }
+
+    return result.filter(item => {
+      const timestamp = String(item?.Timestamp || '');
+      const timePart = timestamp.includes(' ') ? timestamp.split(' ')[1] : "00:00";
+      return timePart >= startTime && timePart <= endTime;
+    });
+  }, [data, fromMonth, fromDay, toMonth, toDay, startTime, endTime]);
+
+  const latest = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
+
+  // --- COMPREHENSIVE ANALYSIS LOGIC ---
+  const analysis = useMemo(() => {
+    if (filteredData.length === 0) return { score: 0, avgV: '0.0', dipPercent: '0.00', avgUnbalance: '0.00', peakUnbalance: '0.00', avgDayPower: '0.00', minDayPower: '0.00', peakDayPower: '0.00', suggestedSolar: '0.0', savings: '0', dayEnergy: '0.0', nightEnergy: '0.0', dayRatio: '0' };
+
+    const v1s = filteredData.map(d => parseFloat(d['Voltage LN1']) || 0).filter(v => v > 0);
+    const v2s = filteredData.map(d => parseFloat(d['Voltage LN2']) || 0).filter(v => v > 0);
+    const v3s = filteredData.map(d => parseFloat(d['Voltage LN3']) || 0).filter(v => v > 0);
+    const allVs = [...v1s, ...v2s, ...v3s];
+    const avgV = allVs.length > 0 ? allVs.reduce((a, b) => a + b, 0) / allVs.length : 0;
+    
+    const dipCount = filteredData.filter(item => {
+        const v1 = parseFloat(item['Voltage LN1']) || 0;
+        const v2 = parseFloat(item['Voltage LN2']) || 0;
+        const v3 = parseFloat(item['Voltage LN3']) || 0;
+        return (v1 > 0 && v1 < alertThreshold) || (v2 > 0 && v2 < alertThreshold) || (v3 > 0 && v3 < alertThreshold);
+    }).length;
+
+    const unbalanceList = filteredData.map(d => {
+        const c1 = parseFloat(d['Current 1']) || 0;
+        const c2 = parseFloat(d['Current 2']) || 0;
+        const c3 = parseFloat(d['Current 3']) || 0;
+        const avg = (c1 + c2 + c3) / 3;
+        if (avg === 0) return 0;
+        return (Math.max(Math.abs(c1 - avg), Math.abs(c2 - avg), Math.abs(c3 - avg)) / avg) * 100;
+    });
+    const avgUnbalance = unbalanceList.length > 0 ? unbalanceList.reduce((a, b) => a + b, 0) / unbalanceList.length : 0;
+    const peakUnbalance = Math.max(...unbalanceList, 0);
+
+    // Solar & Daytime Analysis
+    const daytimeRecords = filteredData.filter(d => {
+        const time = String(d?.Timestamp || '').split(' ')[1];
+        return time >= "08:00" && time <= "17:00";
+    });
+    const nightRecords = filteredData.filter(d => {
+        const time = String(d?.Timestamp || '').split(' ')[1];
+        return time < "08:00" || time > "17:00";
+    });
+
+    const daytimePowers = daytimeRecords.map(d => parseFloat(d['Total Power']) || 0);
+    const avgDayPower = daytimePowers.length > 0 ? daytimePowers.reduce((a, b) => a + b, 0) / daytimePowers.length : 0;
+    const minDayPower = daytimePowers.length > 0 ? Math.min(...daytimePowers) : 0;
+    const peakDayPower = daytimePowers.length > 0 ? Math.max(...daytimePowers) : 0;
+
+    // Energy Calculation Estimation
+    const totalEnergy = filteredData.length > 0 ? 
+        (Math.max(...filteredData.map(d => parseFloat(d['EXP Energy']) || 0)) - Math.min(...filteredData.map(d => parseFloat(d['EXP Energy']) || 0))) : 0;
+
+    const dayPowerSum = daytimeRecords.reduce((a, b) => a + (parseFloat(b['Total Power']) || 0), 0);
+    const nightPowerSum = nightRecords.reduce((a, b) => a + (parseFloat(b['Total Power']) || 0), 0);
+    const totalPowerSum = dayPowerSum + nightPowerSum;
+    const dayEnergyEst = totalPowerSum > 0 ? (dayPowerSum / totalPowerSum) * totalEnergy : 0;
+    const nightEnergyEst = totalEnergy - dayEnergyEst;
+    const dayRatio = totalEnergy > 0 ? ((dayEnergyEst / totalEnergy) * 100).toFixed(0) : 0;
+
+    const suggestedSolarSize = (avgDayPower * 0.8).toFixed(1); 
+    const yearlySavingsEst = Math.round(parseFloat(suggestedSolarSize) * 4 * 365 * 4.42).toLocaleString();
+
+    const vScore = Math.max(0, 100 - (dipCount / filteredData.length) * 500);
+    const cScore = Math.max(0, 100 - avgUnbalance * 2);
+    const finalScore = Math.round((vScore * 0.6) + (cScore * 0.4));
+
+    return {
+        score: finalScore,
+        avgV: avgV.toFixed(1),
+        dipPercent: ((dipCount / filteredData.length) * 100).toFixed(2),
+        avgUnbalance: avgUnbalance.toFixed(2),
+        peakUnbalance: peakUnbalance.toFixed(2),
+        avgDayPower: avgDayPower.toFixed(2),
+        minDayPower: minDayPower.toFixed(2),
+        peakDayPower: peakDayPower.toFixed(2),
+        suggestedSolar: suggestedSolarSize,
+        savings: yearlySavingsEst,
+        dayEnergy: dayEnergyEst.toFixed(1),
+        nightEnergy: nightEnergyEst.toFixed(1),
+        dayRatio: dayRatio
+    };
+  }, [filteredData, alertThreshold]);
+
+  const currentUnbalance = useMemo(() => {
+    if (!latest) return "0.00";
+    const c1 = parseFloat(latest['Current 1']) || 0;
+    const c2 = parseFloat(latest['Current 2']) || 0;
+    const c3 = parseFloat(latest['Current 3']) || 0;
+    const avg = (c1 + c2 + c3) / 3;
+    if (avg === 0) return "0.00";
+    const maxDev = Math.max(Math.abs(c1 - avg), Math.abs(c2 - avg), Math.abs(c3 - avg));
+    return ((maxDev / avg) * 100).toFixed(2);
+  }, [latest]);
+
+  const alerts = useMemo(() => {
+    return filteredData.filter(item => {
+      const v1 = parseFloat(item['Voltage LN1']) || 0;
+      const v2 = parseFloat(item['Voltage LN2']) || 0;
+      const v3 = parseFloat(item['Voltage LN3']) || 0;
+      return (v1 > 0 && v1 < alertThreshold) || (v2 > 0 && v2 < alertThreshold) || (v3 > 0 && v3 < alertThreshold);
+    });
+  }, [filteredData, alertThreshold]);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target.result;
+      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+      if (lines.length === 0) return;
+      const headers = lines[0].split(',').map(h => h.trim());
+      const parsed = lines.slice(1).map(line => {
+        const values = line.split(',');
+        const obj = {};
+        headers.forEach((header, i) => {
+          const val = values[i]?.trim();
+          obj[header] = isNaN(val) ? val : parseFloat(val);
+        });
+        return obj;
+      });
+      setData(parsed);
+      setFocusedRecord(null);
+    };
+    reader.readAsText(file);
+  };
+
+  const syncToCloud = async () => {
+    if (!user || data.length === 0) return;
+    setIsSyncing(true);
+    try {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'power_history', 'latest_state');
+      await setDoc(docRef, { logs: data, fileName: fileName, timestamp: new Date(), updatedBy: user.uid });
+      setIsSyncing(false);
+      setLastSynced(new Date());
+    } catch (err) { console.error("Sync error:", err); setIsSyncing(false); }
+  };
+
+  const findRecord = (key, type) => {
+    if (filteredData.length === 0) return null;
+    return filteredData.reduce((prev, curr) => {
+      const v1 = parseFloat(prev[key]) || 0;
+      const v2 = parseFloat(curr[key]) || 0;
+      return type === 'max' ? (v2 > v1 ? curr : prev) : (v2 < v1 ? curr : prev);
+    });
+  };
+
+  const stats = useMemo(() => {
+    if (!latest || filteredData.length === 0) return null;
+    const mmLL = {
+        min: filteredData.reduce((p, c) => Math.min(p, parseFloat(c['Voltage LL1']) || 0, parseFloat(c['Voltage LL2']) || 0, parseFloat(c['Voltage LL3']) || 0), Infinity),
+        max: filteredData.reduce((p, c) => Math.max(p, parseFloat(c['Voltage LL1']) || 0, parseFloat(c['Voltage LL2']) || 0, parseFloat(c['Voltage LL3']) || 0), -Infinity)
+    };
+    return {
+      v1: (parseFloat(latest['Voltage LN1']) || 0).toFixed(1),
+      v2: (parseFloat(latest['Voltage LN2']) || 0).toFixed(1),
+      v3: (parseFloat(latest['Voltage LN3']) || 0).toFixed(1),
+      vll1: (parseFloat(latest['Voltage LL1']) || 0).toFixed(1),
+      vll2: (parseFloat(latest['Voltage LL2']) || 0).toFixed(1),
+      vll3: (parseFloat(latest['Voltage LL3']) || 0).toFixed(1),
+      c1: (parseFloat(latest['Current 1']) || 0).toFixed(2),
+      c2: (parseFloat(latest['Current 2']) || 0).toFixed(2),
+      c3: (parseFloat(latest['Current 3']) || 0).toFixed(2),
+      p1: (parseFloat(latest['Power1']) || 0).toFixed(2),
+      p2: (parseFloat(latest['Power2']) || 0).toFixed(2),
+      p3: (parseFloat(latest['Power3']) || 0).toFixed(2),
+      records: {
+          v1: { min: findRecord('Voltage LN1', 'min'), max: findRecord('Voltage LN1', 'max') },
+          ll1: { min: findRecord('Voltage LL1', 'min'), max: findRecord('Voltage LL1', 'max') }
+      },
+      avgVolt: ((parseFloat(latest['Voltage LN1']) + parseFloat(latest['Voltage LN2']) + parseFloat(latest['Voltage LN3'])) / 3).toFixed(1),
+      totalPower: (parseFloat(latest['Total Power']) || 0).toFixed(2),
+      maxPower: Math.max(...filteredData.map(d => parseFloat(d['Total Power']) || 0)).toFixed(2),
+      energy: (parseFloat(latest['EXP Energy']) || 0).toFixed(1),
+      impEnergy: (parseFloat(latest['IMP Energy']) || 0).toFixed(1),
+      freq: (parseFloat(latest['Frequency']) || 0).toFixed(1),
+      pf: (parseFloat(latest['Total PF']) || 0).toFixed(2),
+      minLL: mmLL.min === Infinity ? '0.0' : mmLL.min.toFixed(1), 
+      maxLL: mmLL.max === -Infinity ? '0.0' : mmLL.max.toFixed(1)
+    };
+  }, [latest, filteredData]);
+
+  const scrollToTable = () => { if (tableRef.current) tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+
+  // ฟังก์ชันดาวน์โหลดรูปภาพ (Export to Image) แก้ปัญหาระบบ PDF
+  const handleDownloadImage = () => {
+    setIsGeneratingPDF(true);
+    setIsPdfMode(true); 
+
+    // หน่วงเวลาให้ React ซ่อนตารางและล็อกขนาด 1200px ให้เสร็จสนิท
+    setTimeout(async () => {
+      try {
+        if (!window.html2canvas) {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+          document.head.appendChild(script);
+          await new Promise((resolve) => { script.onload = resolve; });
+        }
+
+        const element = reportRef.current;
+        const canvas = await window.html2canvas(element, {
+          scale: 2, // สเกล 2 เท่าเพื่อความคมชัดสูง
+          useCORS: true, 
+          logging: false, 
+          backgroundColor: '#f8fafc',
+          windowWidth: 1200 // บังคับมุมมอง Desktop เสมอ
+        });
+
+        const image = canvas.toDataURL("image/jpeg", 0.95);
+        const link = document.createElement('a');
+        link.href = image;
+        link.download = `${fileName ? fileName.split('.')[0] : 'Power_Analysis'}_Report.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+      } catch (error) {
+        console.error("Image Export Error:", error);
+      } finally {
+        setIsPdfMode(false); 
+        setIsGeneratingPDF(false);
+      }
+    }, 800); 
+  };
+
+  const Gauge = ({ value, min, max, label, unit, color }) => {
+    const val = parseFloat(value) || 0;
+    const percentage = Math.min(Math.max(((val - min) / (max - min)) * 100, 0), 100);
+    const dataGauge = [{ value: percentage }, { value: 100 - percentage }];
+    return (
+      <div className="flex flex-col items-center justify-center p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm h-full hover:border-indigo-200 transition-colors print-break-inside-avoid">
+        <div className="relative w-full aspect-[2/1] max-w-[200px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart><Pie isAnimationActive={!isPdfMode} data={dataGauge} cx="50%" cy="100%" startAngle={180} endAngle={0} innerRadius="70%" outerRadius="100%" dataKey="value" stroke="none"><Cell fill={color} /><Cell fill="#f1f5f9" /></Pie></PieChart>
+          </ResponsiveContainer>
+          <div className="absolute inset-0 flex flex-col items-center justify-end pb-1 text-center">
+            <span className="text-5xl font-black text-slate-800 number-font tabular-nums tracking-tighter leading-none">{value}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase mt-2">{unit}</span>
+          </div>
+        </div>
+        <p className="mt-6 text-xs font-black text-slate-400 uppercase tracking-[0.2em] text-center">{label}</p>
+      </div>
+    );
+  };
+
+  const MinMaxBadge = ({ min, max, unit, minRecord, maxRecord }) => (
+    <div className="flex items-center gap-4 px-6 py-2 bg-slate-50 rounded-2xl border border-slate-100 mt-2 print-break-inside-avoid">
+      <button onClick={() => { if (minRecord) { setFocusedRecord(minRecord); scrollToTable(); } }} className="flex items-center gap-1.5 text-blue-600 hover:scale-105 transition-transform"><TrendingDown className="w-3.5 h-3.5" /><span className="text-[10px] font-bold uppercase">Min:</span><span className="text-lg font-black number-font tracking-tight tabular-nums border-b border-blue-200">{min}</span></button>
+      <div className="w-px h-6 bg-slate-200"></div>
+      <button onClick={() => { if (maxRecord) { setFocusedRecord(maxRecord); scrollToTable(); } }} className="flex items-center gap-1.5 text-rose-600 hover:scale-105 transition-transform"><TrendingUp className="w-3.5 h-3.5" /><span className="text-[10px] font-bold uppercase">Max:</span><span className="text-lg font-black number-font tracking-tight tabular-nums border-b border-rose-200">{max}</span></button>
+      <span className="text-[10px] font-bold text-slate-300 uppercase ml-auto">{unit} Range</span>
+    </div>
+  );
+
+  const PhaseCard = ({ phase, volt, current, power, color, threshold }) => {
+    const vVal = parseFloat(volt) || 0;
+    const isDip = vVal > 0 && vVal < threshold;
+    return (
+      <div className={`bg-white p-6 rounded-[2.5rem] border ${isDip ? 'border-rose-300 bg-rose-50/30' : 'border-slate-100'} shadow-sm relative group hover:shadow-lg transition-all text-left print-break-inside-avoid`}>
+        <div className={`absolute top-0 left-0 w-2 h-full ${isDip ? 'bg-rose-500' : color}`}></div>
+        <div className="flex justify-between items-start mb-6">
+          <div className="text-left text-left"><h4 className="text-2xl number-font font-black text-slate-800">PHASE {phase}</h4><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{isDip ? '⚡ Voltage Dip Alert' : 'Healthy State'}</p></div>
+          <div className="p-2 rounded-xl bg-slate-50 border border-slate-100 text-left"><ZapIcon className={`w-5 h-5 ${isDip ? 'text-rose-500' : 'text-slate-400'}`} /></div>
+        </div>
+        <div className="space-y-3">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-left flex justify-between items-end"><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Volt (L-N)</p><p className="text-3xl font-black number-font tracking-tight tabular-nums">{volt} <span className="text-sm text-slate-400 font-bold">V</span></p></div>
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-left flex justify-between items-end"><p className="text-[10px] font-black text-slate-400 uppercase mb-1">Current</p><p className="text-3xl font-black number-font tracking-tight tabular-nums">{current} <span className="text-sm text-slate-400 font-bold">A</span></p></div>
+          <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 text-left flex justify-between items-end"><p className="text-[10px] font-black text-indigo-400 uppercase mb-1">Power</p><p className="text-3xl font-black number-font tracking-tight tabular-nums">{power} <span className="text-sm text-indigo-400 font-bold">kW</span></p></div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <style>
+        {`
+          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&family=Prompt:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400&display=swap');
+          .modern-font { font-family: 'Prompt', 'Outfit', sans-serif; }
+          .number-font { font-family: 'Outfit', sans-serif; }
+          
+          /* Cinematic Premium Animations */
+          @keyframes floatSlow { 0% { transform: translate(0, 0) scale(1) rotate(0deg); } 33% { transform: translate(50px, -50px) scale(1.1) rotate(5deg); } 66% { transform: translate(-30px, 30px) scale(0.9) rotate(-5deg); } 100% { transform: translate(0, 0) scale(1) rotate(0deg); } }
+          @keyframes floatFast { 0% { transform: translate(0, 0) scale(1) rotate(0deg); } 50% { transform: translate(-60px, 40px) scale(1.2) rotate(-10deg); } 100% { transform: translate(0, 0) scale(1) rotate(0deg); } }
+          
+          /* Target Nexus Animations */
+          @keyframes spinSlow { 100% { transform: rotate(360deg); } }
+          @keyframes spinReverseFast { 100% { transform: rotate(-360deg); } }
+          @keyframes shockwave { 0% { width: 0; height: 0; opacity: 1; border-width: 4px; } 100% { width: 600px; height: 600px; opacity: 0; border-width: 0px; } }
+          @keyframes pulseGlowPremium { 0%, 100% { box-shadow: 0 0 20px rgba(74,20,140,0.4); } 50% { box-shadow: 0 0 50px rgba(0,229,255,0.6); } }
+          
+          .animate-float-slow { animation: floatSlow 20s infinite ease-in-out; }
+          .animate-float-fast { animation: floatFast 15s infinite ease-in-out; }
+          .animate-spin-slow { animation: spinSlow 15s infinite linear; }
+          .animate-spin-reverse-fast { animation: spinReverseFast 8s infinite linear; }
+          .animate-shockwave { animation: shockwave 3s infinite cubic-bezier(0.1, 0.8, 0.3, 1); }
+          .animate-pulse-glow { animation: pulseGlowPremium 4s infinite alternate; }
+          
+          /* Pointed Comet Structure from all directions */
+          .comet-tail { position: absolute; right: 0; top: -3px; height: 6px; background: linear-gradient(90deg, transparent 0%, rgba(0,229,255,0.2) 30%, rgba(0,229,255,0.9) 85%, #ffffff 100%); box-shadow: 0 0 20px 3px rgba(0,229,255,0.7); clip-path: polygon(0% 50%, 100% 0%, 100% 100%); }
+          .comet-tail::after { content: ''; position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 10px; height: 10px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 30px 10px rgba(255,255,255,1), 0 0 50px 20px rgba(0,229,255,0.9); }
+          
+          @keyframes radialFly { 0% { right: 1200px; opacity: 0; transform: scale(0.2); } 10% { opacity: 1; } 70% { opacity: 1; transform: scale(1.2); filter: brightness(1.2); } 90% { right: 80px; opacity: 1; transform: scale(1.5); filter: brightness(2); } 98% { right: 20px; opacity: 1; transform: scale(0.5); filter: brightness(3); } 100% { right: 0px; opacity: 0; transform: scale(0); } }
+
+          /* PRINT CSS RULES (กฎการจัดการหน้าเมื่อกดพิมพ์เป็น PDF) */
+          @media print {
+            body { 
+               -webkit-print-color-adjust: exact !important; 
+               print-color-adjust: exact !important; 
+               background-color: #f8fafc !important;
+            }
+            @page { 
+               size: A4 portrait; 
+               margin: 1cm; 
+            }
+            .no-print { display: none !important; }
+            .print-break-inside-avoid { break-inside: avoid; page-break-inside: avoid; }
+            
+            /* ล็อกขนาดความกว้างให้เหมือนหน้าจอ Desktop เพื่อไม่ให้ Layout พัง */
+            .print-container { width: 1024px !important; max-width: 1024px !important; margin: 0 auto !important; }
+            
+            /* ให้แบนเนอร์คงสีดำสนิทเอาไว้ */
+            .print-banner-bg { background-color: #06020e !important; }
+          }
+        `}
+      </style>
+      <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8 modern-font text-slate-900 text-left print-container">
+        
+        {/* Login Modal */}
+        {showLoginModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm text-left no-print">
+            {/* ... Modal Content (เหมือนเดิม) ... */}
+            <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden border border-white p-8 text-left relative">
+              <button onClick={() => setShowLoginModal(false)} className="absolute top-4 right-4 p-2 bg-white/50 backdrop-blur-md hover:bg-slate-100 rounded-full text-left transition-colors z-10">
+                <X className="w-5 h-5 text-slate-800" />
+              </button>
+              <LoginBanner />
+              <h2 className="text-2xl font-black text-slate-900 mb-2 text-center uppercase tracking-widest italic number-font">Admin Access</h2>
+              <form onSubmit={(e) => { e.preventDefault(); if(passInput === ADMIN_PASSWORD) { setIsAdmin(true); setShowLoginModal(false); setPassInput(''); setLoginError(false); } else { setLoginError(true); } }}>
+                <input type="password" value={passInput} onChange={(e) => setPassInput(e.target.value)} className={`w-full bg-slate-50 border-2 rounded-[24px] py-4 px-6 font-bold outline-none mb-6 text-center tracking-widest ${loginError ? 'border-red-500 bg-red-50 text-red-600' : 'border-slate-100'}`} placeholder="PIN CODE" />
+                <button type="submit" className="w-full bg-[#1A237E] text-white py-4 rounded-[24px] font-black uppercase tracking-widest text-sm hover:bg-[#4A148C] transition-colors shadow-lg shadow-indigo-200">Verify & Login</button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Main Header Display */}
+        <div className="max-w-7xl mx-auto print-banner-bg">
+             <MainBanner isPdf={false} />
+        </div>
+
+        {/* Action Header - ซ่อนตอนปริ้น (no-print) */}
+        <div className="max-w-7xl mx-auto mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6 text-left no-print" data-html2canvas-ignore="true">
+          <div className="flex items-center gap-5 text-left text-left text-left">
+            <div className="bg-gradient-to-br from-[#4A148C] to-[#1A237E] p-3 rounded-[20px] rotate-3 flex items-center justify-center shadow-xl text-left"><AnalyticsIcon className="w-8 h-8 text-[#FDD835]" /></div>
+            <div className="text-left text-left text-left">
+              <h1 className="text-3xl font-black tracking-tight text-slate-900 leading-tight uppercase text-left">
+                {fileName ? fileName.split('.')[0] : 'ระบบวิเคราะห์ข้อมูล'} <span className="text-[#4A148C] italic number-font">Power Stats</span>
+              </h1>
+              <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mt-1 italic text-left number-font">RCS Monitoring Suite</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 bg-white p-2 rounded-[24px] shadow-sm border border-slate-100 text-left">
+            <button onClick={() => setIsAdmin(false)} className={`px-6 py-3 rounded-2xl text-[11px] font-black uppercase transition-all ${!isAdmin ? 'bg-[#4A148C] text-white shadow-lg shadow-purple-100' : 'text-slate-400'}`}>Monitor</button>
+            <button onClick={() => !isAdmin && setShowLoginModal(true)} className={`px-6 py-3 rounded-2xl text-[11px] font-black uppercase transition-all ${isAdmin ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400'}`}>{isAdmin ? 'Admin Panel' : 'Login'}</button>
+          </div>
+        </div>
+
+        {/* Admin Tools - ซ่อนตอนปริ้น (no-print) */}
+        {isAdmin && (
+          <div className="max-w-7xl mx-auto mb-10 text-left no-print" data-html2canvas-ignore="true">
+            <div className="bg-slate-900 p-10 rounded-[40px] text-white flex flex-col lg:flex-row items-center justify-between gap-8 border border-white/5 shadow-2xl text-left">
+              <div className="flex items-center gap-6 text-left text-left text-left"><div className="bg-[#4A148C]/40 p-5 rounded-3xl"><Database className="w-10 h-10 text-[#FDD835]" /></div><div className="text-left"><h2 className="font-black text-2xl mb-1 uppercase italic tracking-widest text-left number-font">Diagnostic Sync</h2><p className="text-slate-400 text-xs font-medium uppercase tracking-[0.2em] text-left">Synchronize local data to cloud storage</p></div></div>
+              <div className="flex flex-wrap gap-4 text-left">
+                <label className="cursor-pointer"><input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" /><div className="flex items-center gap-3 px-8 py-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 text-xs font-black uppercase transition-colors"><Upload className="w-4 h-4 text-[#FDD835]" /> Import CSV</div></label>
+                <button onClick={syncToCloud} disabled={data.length === 0 || isSyncing} className="flex items-center gap-4 px-12 py-4 rounded-2xl text-xs font-black uppercase bg-[#4A148C] hover:bg-[#311068] shadow-xl transition-all number-font">{isSyncing ? 'Syncing...' : 'Push to Cloud'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filter Bar - ซ่อนตอนปริ้น (no-print) */}
+        {data.length > 0 && (
+          <div className="max-w-7xl mx-auto mb-10 bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-wrap items-center gap-8 text-left text-left no-print" data-html2canvas-ignore="true">
+            <div className="flex flex-col gap-3 min-w-[280px] text-left text-left text-left"><span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 text-left"><Calendar className="w-3.5 h-3.5 text-indigo-400"/> เริ่มต้น (Start Date)</span><div className="flex gap-2 text-left"><div className="relative flex-1 text-left"><select value={fromMonth} onChange={(e) => setFromMonth(e.target.value)} className="w-full bg-slate-50 border-none rounded-xl text-sm font-black px-4 py-3 text-slate-700 outline-none appearance-none cursor-pointer">{uniqueMonths.map(m => (<option key={m} value={m}>{getMonthLabel(m)}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" /></div><div className="relative w-28 text-left"><select value={fromDay} onChange={(e) => setFromDay(e.target.value)} className="w-full bg-indigo-50 border-none rounded-xl text-sm font-black px-4 py-3 text-indigo-700 outline-none appearance-none cursor-pointer">{getDaysInMonth(fromMonth).map(d => (<option key={d} value={d}>วันที่ {parseInt(d)}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400 pointer-events-none" /></div></div></div>
+            <ArrowRight className="text-slate-300 hidden md:block mt-6 text-left" />
+            <div className="flex flex-col gap-3 min-w-[280px] text-left text-left text-left"><span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 text-left text-left"><Calendar className="w-3.5 h-3.5 text-rose-400"/> สิ้นสุด (End Date)</span><div className="flex gap-2 text-left"><div className="relative flex-1 text-left text-left"><select value={toMonth} onChange={(e) => setToMonth(e.target.value)} className="w-full bg-slate-50 border-none rounded-xl text-sm font-black px-4 py-3 text-slate-700 outline-none appearance-none cursor-pointer text-left">{uniqueMonths.map(m => (<option key={m} value={m}>{getMonthLabel(m)}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" /></div><div className="relative w-28 text-left"><select value={toDay} onChange={(e) => setToDay(e.target.value)} className="w-full bg-rose-50 border-none rounded-xl text-sm font-black px-4 py-3 text-rose-700 outline-none appearance-none cursor-pointer">{getDaysInMonth(toMonth).map(d => (<option key={d} value={d}>วันที่ {parseInt(d)}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-rose-400 pointer-events-none" /></div></div></div>
+            <div className="flex flex-col gap-3 border-l border-slate-100 pl-8 text-left text-left text-left text-left"><span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 text-left"><Clock className="w-3.5 h-3.5"/> Time Range</span><div className="flex items-center gap-3 text-left"><input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="bg-slate-50 border-none rounded-xl text-sm font-black px-4 py-3 text-slate-700 outline-none number-font tracking-wider" /><span className="text-slate-300 font-bold">~</span><input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="bg-slate-50 border-none rounded-xl text-sm font-black px-4 py-3 text-slate-700 outline-none number-font tracking-wider" /></div></div>
+          </div>
+        )}
+
+        {latest && stats ? (
+          <div ref={reportRef} className="mx-auto space-y-10 animate-in fade-in duration-700 text-left text-left bg-[#f8fafc] px-2 py-4 rounded-xl" style={isPdfMode ? { width: '1200px', maxWidth: '1200px', padding: '40px', margin: '0 auto' } : { maxWidth: '80rem', margin: '0 auto' }}>
+            
+            {/* Banner Inside Export (Only shows in generated image) */}
+            {isPdfMode && (
+              <MainBanner isPdf={true} />
+            )}
+
+            {/* Dashboard Gauges */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+              <Gauge value={stats.totalPower} min={0} max={100} label="Total Power" unit="kW" color="#4A148C" />
+              <Gauge value={stats.avgVolt} min={200} max={250} label="Avg Voltage (L-N)" unit="V" color="#1A237E" />
+              <Gauge value={stats.pf} min={0} max={1} label="Power Factor" unit="PF" color="#10b981" />
+              <Gauge value={stats.freq} min={45} max={55} label="Frequency" unit="Hz" color="#3b82f6" />
+            </div>
+
+            {/* Voltage & Current Section */}
+            <div className="space-y-4 text-left text-left text-left">
+              <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 text-left number-font"><Zap className="w-4 h-4 text-[#4A148C] text-left" /> Voltage Analysis (Line-to-Line)</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                <Gauge value={stats.vll1} min={350} max={450} label="Voltage L1-L2" unit="V" color="#ef4444" />
+                <Gauge value={stats.vll2} min={350} max={450} label="Voltage L2-L3" unit="V" color="#eab308" />
+                <Gauge value={stats.vll3} min={350} max={450} label="Voltage L3-L1" unit="V" color="#3b82f6" />
+              </div>
+              <MinMaxBadge min={stats.minLL} max={stats.maxLL} unit="Voltage L-L" />
+            </div>
+
+            <div className="space-y-4 text-left text-left text-left">
+              <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 text-left text-left number-font"><Database className="w-4 h-4 text-slate-600" /> Phase Diagnostics</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                <PhaseCard phase="L1" volt={stats.v1} current={stats.c1} power={stats.p1} color="bg-red-500" threshold={alertThreshold} />
+                <PhaseCard phase="L2" volt={stats.v2} current={stats.c2} power={stats.p2} color="bg-yellow-500" threshold={alertThreshold} />
+                <PhaseCard phase="L3" volt={stats.v3} current={stats.c3} power={stats.p3} color="bg-blue-600" threshold={alertThreshold} />
+              </div>
+            </div>
+
+            {/* Graphical Analysis Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-left text-left print-break-inside-avoid">
+              <div className="lg:col-span-2 space-y-6 text-left text-left">
+                  {/* Voltage LN Profile Graph */}
+                  <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 text-left break-inside-avoid">
+                      <div className="flex justify-between items-start mb-10 text-left">
+                          <div className="text-left"><h3 className="text-2xl font-black flex items-center gap-3 uppercase italic tracking-tighter text-left text-left number-font"><Zap className="text-[#4A148C] w-6 h-6"/> Voltage Profile <span className="text-lg text-slate-400">(L-N)</span></h3><p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 text-left">L-N Phase voltage behavior across filtered range</p></div>
+                          <div className="flex gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-100 text-left"><div className="flex items-center gap-2 text-left"><div className="w-3 h-3 rounded-full bg-red-500 text-left"></div><span className="text-[10px] font-black uppercase text-slate-500 text-left number-font">L1</span></div><div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-yellow-500 text-left"></div><span className="text-[10px] font-black uppercase text-slate-500 text-left number-font">L2</span></div><div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500 text-left"></div><span className="text-[10px] font-black uppercase text-slate-500 text-left text-left number-font">L3</span></div></div>
+                      </div>
+                      <div className="h-[300px] text-left">
+                          <ResponsiveContainer width="100%" height="100%" className="number-font font-bold">
+                              <AreaChart data={filteredData}>
+                                  <defs>
+                                      <linearGradient id="vL1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ef4444" stopOpacity={0.05}/><stop offset="95%" stopColor="#ef4444" stopOpacity={0}/></linearGradient>
+                                      <linearGradient id="vL2" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#eab308" stopOpacity={0.05}/><stop offset="95%" stopColor="#eab308" stopOpacity={0}/></linearGradient>
+                                      <linearGradient id="vL3" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.05}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient>
+                                  </defs>
+                                  <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="#f1f5f9" />
+                                  <XAxis dataKey="Timestamp" hide />
+                                  <YAxis domain={['auto', 'auto']} stroke="#cbd5e1" fontSize={12} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}V`} />
+                                  <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', fontSize: '14px', fontWeight: 'bold' }} />
+                                  <Area isAnimationActive={!isPdfMode} type="monotone" dataKey="Voltage LN1" stroke="#ef4444" strokeWidth={2} dot={false} activeDot={{ r: 5 }} fill="url(#vL1)" name="Phase 1" />
+                                  <Area isAnimationActive={!isPdfMode} type="monotone" dataKey="Voltage LN2" stroke="#eab308" strokeWidth={2} dot={false} activeDot={{ r: 5 }} fill="url(#vL2)" name="Phase 2" />
+                                  <Area isAnimationActive={!isPdfMode} type="monotone" dataKey="Voltage LN3" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 5 }} fill="url(#vL3)" name="Phase 3" />
+                              </AreaChart>
+                          </ResponsiveContainer>
+                      </div>
+                  </div>
+
+                  {/* Current Profile Graph */}
+                  <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 text-left break-inside-avoid">
+                      <div className="flex justify-between items-start mb-10 text-left">
+                          <div className="text-left text-left"><h3 className="text-2xl font-black flex items-center gap-3 uppercase italic tracking-tighter text-left number-font"><Activity className="text-[#4A148C] w-6 h-6"/> Current Profile <span className="text-lg text-slate-400">(Amps)</span></h3><p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 text-left">Line current behavior across filtered range</p></div>
+                      </div>
+                      <div className="h-[250px] text-left">
+                          <ResponsiveContainer width="100%" height="100%" className="number-font font-bold">
+                              <AreaChart data={filteredData}>
+                                  <defs>
+                                      <linearGradient id="gL1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ef4444" stopOpacity={0.08}/><stop offset="95%" stopColor="#ef4444" stopOpacity={0}/></linearGradient>
+                                      <linearGradient id="gL2" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#eab308" stopOpacity={0.08}/><stop offset="95%" stopColor="#eab308" stopOpacity={0}/></linearGradient>
+                                      <linearGradient id="gL3" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.08}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient>
+                                  </defs>
+                                  <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="#f1f5f9" /><XAxis dataKey="Timestamp" hide /><YAxis stroke="#cbd5e1" fontSize={12} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}A`} /><Tooltip contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', fontSize: '14px', fontWeight: 'bold' }} />
+                                  <Area isAnimationActive={!isPdfMode} type="monotone" dataKey="Current 1" stroke="#ef4444" strokeWidth={2} dot={false} activeDot={{ r: 5 }} fill="url(#gL1)" />
+                                  <Area isAnimationActive={!isPdfMode} type="monotone" dataKey="Current 2" stroke="#eab308" strokeWidth={2} dot={false} activeDot={{ r: 5 }} fill="url(#gL2)" />
+                                  <Area isAnimationActive={!isPdfMode} type="monotone" dataKey="Current 3" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 5 }} fill="url(#gL3)" />
+                              </AreaChart>
+                          </ResponsiveContainer>
+                      </div>
+                      <div className="mt-8 pt-8 border-t flex flex-col md:flex-row gap-8 items-center justify-between text-left text-left text-left">
+                          <div className="flex items-center gap-4 text-left"><div className={`p-4 rounded-3xl text-left ${parseFloat(currentUnbalance) > 15 ? 'bg-rose-50 text-rose-500 shadow-lg shadow-rose-100' : 'bg-emerald-50 text-emerald-500'}`}><ZapIcon className="w-6 h-6" /></div><div className="text-left text-left"><p className="text-xs font-black text-slate-400 uppercase tracking-widest text-left">Current Unbalance (%)</p><p className={`text-5xl font-black tabular-nums tracking-tighter number-font text-left ${parseFloat(currentUnbalance) > 15 ? 'text-rose-600' : 'text-emerald-600'}`}>{currentUnbalance}%</p></div></div>
+                          <div className="bg-slate-50 px-6 py-4 rounded-2xl text-left border border-slate-100 flex items-center gap-3 max-w-sm text-left"><Info className="w-5 h-5 text-slate-400 shrink-0" /><p className="text-[13px] font-bold text-slate-600 leading-relaxed text-left">สถานะ: {parseFloat(currentUnbalance) > 15 ? 'ความไม่สมดุลสูงเกินเกณฑ์มาตรฐาน แนะนำตรวจสอบโหลดแต่ละเฟส' : 'ภาระโหลดมีการกระจายสมดุลที่ดี (Healthy)'}</p></div>
+                      </div>
+                  </div>
+              </div>
+
+              {/* Accumulated Energy Section */}
+              <div className="bg-gradient-to-b from-[#1A237E] to-[#4A148C] p-10 rounded-[3rem] text-white flex flex-col justify-between shadow-2xl text-left break-inside-avoid relative overflow-hidden print-break-inside-avoid">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                <div className="relative z-10 text-left"><h3 className="text-2xl font-black mb-8 uppercase italic tracking-widest text-left number-font text-[#FDD835]">Accumulated Energy</h3>
+                  <div className="space-y-6 text-left">
+                    <div className="bg-white/10 backdrop-blur-sm p-6 rounded-[2rem] border border-white/20">
+                      <p className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-1 text-left">Total Energy (Estimated)</p>
+                      <p className="text-6xl font-black tracking-tighter number-font italic text-left">{stats.energy} <span className="text-xl font-bold text-[#FDD835] not-italic">kWh</span></p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="flex items-center justify-between p-4 bg-[#FDD835]/10 rounded-2xl border border-[#FDD835]/30">
+                        <div className="flex items-center gap-4">
+                          <Sun className="w-6 h-6 text-[#FDD835]" />
+                          <div>
+                             <p className="text-[10px] font-black text-[#FDD835] uppercase">Daytime Use (08:00-17:00)</p>
+                             <p className="text-2xl font-black number-font text-left">{analysis.dayEnergy} <span className="text-xs opacity-60">kWh</span></p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                           <p className="text-3xl font-black number-font text-[#FDD835]">{analysis.dayRatio}%</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
+                        <div className="flex items-center gap-4">
+                          <Moon className="w-6 h-6 text-blue-300" />
+                          <div>
+                             <p className="text-[10px] font-black text-blue-300 uppercase">Night-time Use</p>
+                             <p className="text-2xl font-black number-font text-left">{analysis.nightEnergy} <span className="text-xs opacity-60">kWh</span></p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                           <p className="text-3xl font-black number-font text-blue-300">{100 - analysis.dayRatio}%</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-white/10">
+                      <p className="text-[11px] font-bold text-slate-300 uppercase tracking-widest mb-1 text-left">Total Import (kWh)</p>
+                      <p className="text-4xl font-black number-font tracking-tight text-white italic text-left">{stats.impEnergy}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-8 mt-6 border-t border-white/10 text-left relative z-10"><p className="text-[11px] font-bold text-[#FDD835] uppercase tracking-widest mb-2 text-left">Peak Demand</p><p className="text-5xl font-black text-rose-400 number-font tabular-nums italic tracking-tighter text-left">{stats.maxPower} <span className="text-2xl text-rose-300 not-italic">kW</span></p></div>
+              </div>
+            </div>
+
+            {/* Alert Center */}
+            <div className="bg-rose-50 border border-rose-100 rounded-[3rem] p-8 text-left text-left print-break-inside-avoid">
+               <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6 text-left text-left text-left">
+                  <div className="flex items-center gap-4 text-left"><div className="bg-rose-500 p-4 rounded-3xl shadow-lg shadow-rose-200"><Bell className="w-8 h-8 text-white animate-bounce" /></div><div className="text-left text-left text-left"><h3 className="text-3xl font-black text-rose-900 number-font uppercase italic tracking-tighter text-left">Alert Center</h3><p className="text-xs font-bold text-rose-400 uppercase tracking-widest italic text-left">Voltage Dip Diagnosis console</p></div></div>
+                  <div className="flex items-center gap-4 bg-white/60 p-2 pl-5 rounded-[20px] border border-rose-100 text-left no-print"><div className="flex items-center gap-2 text-left"><Settings2 className="w-5 h-5 text-rose-500" /><span className="text-xs font-black text-slate-500 uppercase tracking-wider text-left">Threshold:</span></div><div className="relative text-left text-left"><select value={alertThreshold} onChange={(e) => setAlertThreshold(parseInt(e.target.value))} className="bg-rose-500 text-white text-sm font-black py-3 px-6 rounded-xl outline-none appearance-none pr-10 cursor-pointer number-font tracking-wide text-left text-left">{[200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210].map(v => (<option key={v} value={v}>{v} โวลต์</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white pointer-events-none" /></div></div>
+                  <div className="bg-white px-8 py-3 rounded-2xl border border-rose-100 text-4xl number-font font-black tracking-tighter text-rose-600 text-left">{alerts.length} <span className="text-sm text-rose-300 uppercase text-left tracking-widest">Hits</span></div>
+               </div>
+               {alerts.length > 0 ? (
+                  <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto no-scrollbar pr-2 text-left text-left`}>
+                     {alerts.slice().reverse().map((alert, idx) => (
+                        <button key={idx} onClick={() => { setFocusedRecord(alert); scrollToTable(); }} className="bg-white p-5 rounded-2xl border border-rose-100 flex items-center justify-between hover:shadow-md transition-shadow group text-left">
+                           <div className="text-left text-left text-left text-left"><span className="text-xs number-font font-black text-slate-400 uppercase text-left">{renderValue(alert.Timestamp)}</span><div className="flex gap-2 mt-2 text-left">{parseFloat(alert['Voltage LN1']) < alertThreshold && parseFloat(alert['Voltage LN1']) > 0 && <span className="text-[11px] number-font font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded text-left">L1: {renderValue(alert['Voltage LN1'])}V</span>}</div></div><ArrowUpRight className="w-5 h-5 text-rose-300 group-hover:text-rose-500 transition-colors" />
+                        </button>
+                     ))}
+                  </div>
+               ) : (<div className="bg-white/50 p-8 rounded-2xl border border-dashed border-rose-200 text-center text-sm font-bold text-rose-300 italic uppercase text-left">Healthy • No dips below {alertThreshold}V</div>)}
+            </div>
+
+            {/* Diagnostic Table (ซ่อนตารางนี้ทั้งหมดเมื่อกดบันทึกรูปภาพ เพื่อให้รายงานกระชับ) */}
+            {!isPdfMode && (
+              <div ref={tableRef} className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden text-left text-left break-inside-avoid no-print">
+                <div className="p-10 border-b flex flex-col md:flex-row justify-between items-center bg-slate-50/30 gap-6 text-left">
+                  <div className="text-left text-left text-left text-left text-left text-left"><h3 className="font-black text-3xl number-font uppercase italic tracking-widest text-left">Diagnostic Logs</h3><p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-2 text-left">{focusedRecord ? `Highlighting Event: ${renderValue(focusedRecord.Timestamp)}` : 'Full Historical Stream'}</p></div>
+                  <div className="flex gap-4 text-left text-left text-left">{focusedRecord && <button onClick={() => setFocusedRecord(null)} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl text-xs font-black uppercase shadow-lg shadow-indigo-100 text-left">Reset View</button>}<button onClick={() => { const h = tableHeaders.join(','); const c = [h, ...filteredData.map(r => tableHeaders.map(hd => r[hd]).join(','))].join('\n'); const b = new Blob([c], { type: 'text/csv' }); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = 'Power_Report.csv'; a.click(); }} className="bg-slate-900 text-white px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg text-left number-font" data-html2canvas-ignore="true">Export CSV</button></div>
+                </div>
+                <div className="max-h-[600px] overflow-x-auto no-scrollbar text-left text-left">
+                  <table className="w-full text-left text-sm text-left">
+                    <thead className="sticky top-0 bg-white z-10 border-b border-slate-100 text-left"><tr className="bg-slate-50/50 text-left">{tableHeaders.map(k => (<th key={k} className="px-6 py-6 font-black uppercase text-[11px] tracking-widest whitespace-nowrap text-slate-400 text-left">{k}</th>))}</tr></thead>
+                    <tbody className="divide-y divide-slate-50 text-left text-left">{(focusedRecord ? [focusedRecord] : filteredData.slice().reverse()).map((row, i) => (<tr key={i} className={`group transition-all text-left ${focusedRecord ? 'bg-indigo-50/50' : (parseFloat(row['Voltage LN1']) < alertThreshold && parseFloat(row['Voltage LN1']) > 0 ? 'bg-rose-50/30' : 'hover:bg-slate-50/50')}`}>{tableHeaders.map((header, j) => (<td key={j} className={`px-6 py-4 text-sm font-bold tabular-nums number-font text-left ${header.includes('Voltage LN') && parseFloat(row[header]) < alertThreshold && parseFloat(row[header]) > 0 ? 'text-rose-600' : 'text-slate-600 group-hover:text-indigo-600'}`}>{renderValue(row[header])}</td>))}</tr>))}</tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* STRATEGY REPORT */}
+            <div className="bg-white rounded-[3.5rem] p-12 border border-[#4A148C]/20 shadow-xl overflow-hidden relative text-left print-break-inside-avoid">
+               <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none text-left"><ClipboardCheck className="w-64 h-64 text-[#4A148C] text-left" /></div>
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6 text-left">
+                  <div className="text-left text-left text-left"><h2 className="text-4xl font-black text-[#4A148C] number-font uppercase tracking-tighter italic mb-2 text-left">Management Strategy</h2><p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 text-left"><ShieldAlert className="w-5 h-5 text-[#FDD835]" /> Power Quality & Solar Investment Report</p></div>
+                  <div className="flex flex-col items-center gap-2 bg-slate-50 px-10 py-5 rounded-[2rem] border border-slate-200 text-left"><span className="text-[11px] font-black text-[#4A148C] uppercase tracking-widest text-left">Overall Health Score</span><div className="flex items-baseline gap-1 text-left"><span className={`text-6xl number-font tracking-tighter font-black text-left ${analysis.score > 80 ? 'text-emerald-500' : analysis.score > 60 ? 'text-amber-500' : 'text-rose-500'}`}>{analysis.score}</span><span className="text-lg font-bold text-slate-300 text-left text-left">%</span></div></div>
+               </div>
+
+               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 text-left text-left">
+                  {/* 1. kW & Load Analysis */}
+                  <div className="bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100 flex flex-col h-full text-left text-left">
+                      <div className="flex items-center gap-4 mb-6 text-left text-left"><div className="bg-orange-500 p-3 rounded-2xl shadow-lg shadow-orange-100 text-left"><TrendUp className="w-5 h-5 text-white" /></div><h4 className="font-black text-slate-800 text-base text-left">กิโลวัตต์ (kW Analysis)</h4></div>
+                      <div className="space-y-4 flex-grow text-left">
+                          <div className="flex justify-between items-center text-sm text-left"><span className="font-bold text-slate-500 text-left">Peak รวม:</span><span className="font-black number-font text-lg text-slate-900 text-left">{stats.maxPower} kW</span></div>
+                          <div className="flex justify-between items-center text-sm text-left"><span className="font-bold text-slate-500 text-left">เฉลี่ยกลางวัน:</span><span className="font-black number-font text-lg text-indigo-600 text-left">{analysis.avgDayPower} kW</span></div>
+                          <div className="flex justify-between items-center text-sm text-left"><span className="font-bold text-slate-500 text-left">Base Load:</span><span className="font-black number-font text-lg text-slate-900 text-left">{analysis.minDayPower} kW</span></div>
+                          <div className="mt-6 pt-6 border-t border-slate-200 text-left">
+                              <p className="text-[13px] font-bold text-slate-600 leading-relaxed text-left">
+                                  การใช้ไฟในช่วง <span className="number-font">{startTime} - {endTime}</span> มี Peak อยู่ที่ <span className="number-font">{stats.maxPower} kW</span> แนะนำให้ลด Peak Demand โดยการเกลี่ยภาระงาน
+                              </p>
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* 2. Solar Rooftop Analysis */}
+                  <div className="bg-gradient-to-br from-[#1A237E]/5 to-[#4A148C]/5 p-8 rounded-[2.5rem] border border-[#4A148C]/20 flex flex-col h-full relative overflow-hidden text-left">
+                      <div className="absolute -top-4 -right-4 opacity-10 text-left text-left text-left"><Sun className="w-32 h-32 text-[#FDD835] text-left" /></div>
+                      <div className="flex items-center gap-4 mb-6 text-left text-left text-left"><div className="bg-[#4A148C] p-3 rounded-2xl shadow-lg shadow-indigo-100 text-left"><Sun className="w-5 h-5 text-[#FDD835]" /></div><h4 className="font-black text-slate-800 number-font uppercase text-base italic text-left">Solar Investment</h4></div>
+                      <div className="space-y-4 flex-grow text-left text-left">
+                          <div className="p-5 bg-white rounded-2xl border border-indigo-100 shadow-sm text-left">
+                             <p className="text-[10px] font-black text-indigo-400 uppercase mb-1 text-left text-left">Recommended Size</p>
+                             <p className="text-3xl number-font font-black text-slate-900 text-left">{analysis.suggestedSolar} <span className="text-sm font-bold text-left text-left not-italic text-slate-500">kWp</span></p>
+                          </div>
+                          <div className="flex justify-between items-center text-sm text-left"><span className="font-bold text-slate-500 text-left">ประหยัดเฉลี่ย:</span><span className="font-black number-font text-lg text-emerald-600 text-left text-left">~{analysis.savings} บ./ปี</span></div>
+                          <div className="mt-6 pt-6 border-t border-indigo-200 text-left">
+                              <p className="text-[13px] font-bold text-slate-600 leading-relaxed text-left text-left">
+                                  แนะนำติดตั้งขนาด <span className="text-indigo-600 number-font font-bold text-left">{analysis.suggestedSolar} kWp</span> เพื่อลดค่าไฟกลางวันได้สูงสุดโดยไม่ต้องส่งออก
+                              </p>
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* 3. Voltage Quality Analysis */}
+                  <div className="bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100 flex flex-col h-full text-left text-left">
+                      <div className="flex items-center gap-4 mb-6 text-left text-left text-left"><div className="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-100 text-left"><ZapIcon className="w-5 h-5 text-white" /></div><h4 className="font-black text-slate-800 text-base text-left">วิเคราะห์แรงดัน (Volt)</h4></div>
+                      <div className="space-y-4 flex-grow text-left text-left">
+                          <div className="flex justify-between items-center text-sm text-left"><span className="font-bold text-slate-500 text-left">เฉลี่ย (L-N):</span><span className="font-black number-font text-lg text-slate-900 text-left">{analysis.avgV} V</span></div>
+                          <div className="flex justify-between items-center text-sm text-left"><span className="font-bold text-slate-500 text-left">อัตราแรงดันตก:</span><span className={`font-black number-font text-lg text-left ${parseFloat(analysis.dipPercent) > 5 ? 'text-rose-600' : 'text-emerald-600'}`}>{analysis.dipPercent}%</span></div>
+                          <div className="mt-6 pt-6 border-t border-slate-200 text-left">
+                              <p className="text-[13px] font-bold text-slate-600 leading-relaxed text-left">
+                                  {parseFloat(analysis.dipPercent) > 10 ? "พบบ่อยครั้งในแรงดันตก ควรตรวจสอบจุดเชื่อมต่อสายหลัก" : "แรงดันอยู่ในเกณฑ์เสถียร รองรับอุปกรณ์ไฟฟ้าได้ดี"}
+                              </p>
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* 4. Current & Unbalance Analysis */}
+                  <div className="bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100 flex flex-col h-full text-left text-left">
+                      <div className="flex items-center gap-4 mb-6 text-left text-left text-left"><div className="bg-emerald-600 p-3 rounded-2xl shadow-lg shadow-emerald-100 text-left text-left text-left text-left"><Activity className="w-5 h-5 text-white" /></div><h4 className="font-black text-slate-800 text-base text-left">วิเคราะห์กระแส (Amp)</h4></div>
+                      <div className="space-y-4 flex-grow text-left">
+                          <div className="flex justify-between items-center text-sm text-left"><span className="font-bold text-slate-500 text-left text-left text-left">Unbalance เฉลี่ย:</span><span className="font-black number-font text-lg text-slate-900 text-left">{analysis.avgUnbalance}%</span></div>
+                          <div className="flex justify-between items-center text-sm text-left"><span className="font-bold text-slate-500 text-left text-left text-left text-left">Unbalance สูงสุด:</span><span className={`font-black number-font text-lg text-left ${parseFloat(analysis.peakUnbalance) > 15 ? 'text-rose-600' : 'text-emerald-600'}`}>{analysis.peakUnbalance}%</span></div>
+                          <div className="mt-6 pt-6 border-t border-slate-200 text-left text-left">
+                              <p className="text-[13px] font-bold text-slate-600 leading-relaxed text-left text-left">
+                                  {parseFloat(analysis.avgUnbalance) > 15 ? "ควรทำ Load Balancing ระหว่างเฟสใหม่เพื่อยืดอายุหม้อแปลง" : "การกระจายโหลดอยู่ในเกณฑ์มาตรฐาน (Healthy)"}
+                              </p>
+                          </div>
+                      </div>
+                  </div>
+               </div>
+
+               <div className="mt-12 bg-gradient-to-r from-[#1A237E] to-[#4A148C] p-10 rounded-[3rem] text-white flex flex-col gap-8 text-left">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {/* Customer Strategy */}
+                      <div className="flex flex-col gap-4 bg-white/10 backdrop-blur-sm p-8 rounded-[2.5rem] border border-white/20">
+                          <div className="flex items-center gap-4">
+                              <div className="bg-[#FDD835] p-4 rounded-2xl"><ShieldCheck className="w-8 h-8 text-[#4A148C]" /></div>
+                              <h4 className="text-xl font-black text-[#FDD835]">บทสรุปเชิงกลยุทธ์สำหรับลูกค้า</h4>
+                          </div>
+                          <p className="text-sm text-slate-200 font-medium leading-relaxed mt-2">
+                              คุณภาพไฟฟ้าโดยรวมอยู่ที่ <span className="text-white number-font font-black text-lg">{analysis.score}%</span> แนะนำให้ลูกค้าพิจารณาลงทุน <span className="text-[#FDD835] number-font font-black text-lg">Solar Rooftop ขนาด {analysis.suggestedSolar} kWp</span> ควบคู่ไปกับการจัดสมดุลโหลด (Load Balancing) เพื่อประสิทธิภาพสูงสุดในการลดค่าพลังงานไฟฟ้า
+                          </p>
+                      </div>
+
+                      {/* PEA Strategy */}
+                      <div className="flex flex-col gap-4 bg-white/10 backdrop-blur-sm p-8 rounded-[2.5rem] border border-white/20">
+                          <div className="flex items-center gap-4">
+                              <div className="bg-white p-4 rounded-2xl"><ZapIcon className="w-8 h-8 text-[#4A148C]" /></div>
+                              <h4 className="text-xl font-black text-white">บทสรุปสำหรับระบบไฟฟ้า PEA</h4>
+                          </div>
+                          <p className="text-sm text-slate-200 font-medium leading-relaxed mt-2">
+                              ตรวจพบอัตราแรงดันตก <span className={`number-font font-black text-lg ${parseFloat(analysis.dipPercent) > 5 ? 'text-rose-400' : 'text-emerald-400'}`}>{analysis.dipPercent}%</span> และ Unbalance เฉลี่ย <span className={`number-font font-black text-lg ${parseFloat(analysis.avgUnbalance) > 15 ? 'text-rose-400' : 'text-emerald-400'}`}>{analysis.avgUnbalance}%</span><br/><br/>{parseFloat(analysis.dipPercent) > 5 || parseFloat(analysis.avgUnbalance) > 15 ? 'คำแนะนำ: ตรวจสอบพิกัดหม้อแปลง, ปรับ Tap หรือทำ Phase Balancing บริเวณจุดเชื่อมต่อ' : 'สภาพระบบจำหน่ายอยู่ในเกณฑ์มาตรฐาน จ่ายไฟได้เสถียรภาพ'}
+                          </p>
+                      </div>
+                  </div>
+
+                  <div className="flex justify-end pt-6 border-t border-white/20 no-print" data-html2canvas-ignore="true">
+                      <button onClick={handleDownloadImage} disabled={isGeneratingPDF} className={`bg-[#FDD835] hover:bg-yellow-300 transition-colors text-[#4A148C] px-12 py-5 rounded-[24px] text-sm font-black uppercase tracking-widest shadow-xl flex items-center gap-3 number-font ${isGeneratingPDF ? 'opacity-70 cursor-wait' : ''}`}>
+                          {isGeneratingPDF ? <><CloudUpload className="w-6 h-6 animate-bounce" /> กำลังประมวลผลรูปภาพ...</> : <><Download className="w-6 h-6" /> บันทึกรายงานเป็นรูปภาพ</>}
+                      </button>
+                  </div>
+               </div>
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-2xl mx-auto mt-24 text-center py-40 bg-white rounded-[4rem] shadow-2xl border border-white text-center no-print">
+            <Cloud className="w-24 h-24 text-[#4A148C] mx-auto mb-8 animate-pulse text-center" />
+            <h2 className="text-4xl number-font font-black mb-3 uppercase italic tracking-tighter text-slate-900 text-center">RCS Integration</h2>
+            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest italic text-center number-font">Awaiting PEA Data Stream</p>
+          </div>
+        )}
+
+        {/* Footer - ซ่อนตอนปริ้น (no-print) */}
+        <footer className="max-w-7xl mx-auto mt-24 text-center py-20 border-t border-slate-200 text-center no-print" data-html2canvas-ignore="true">
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.5em] mb-5 italic text-center number-font">Research & Control System Suite v6.4</p>
+          <div className="flex items-center justify-center gap-4 text-center text-center">
+               <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-slate-100 text-center text-center shadow-sm"><span className="text-xs font-black text-[#4A148C] tracking-tighter number-font">RCS</span></div>
+               <p className="text-slate-400 text-[11px] font-black uppercase tracking-[0.2em] text-center number-font">© 2024 PEA INNOVATION • นวัตกรรมฤาษีราชสาส์น</p>
+          </div>
+        </footer>
+      </div>
+    </>
+  );
+};
+
+export default App;
